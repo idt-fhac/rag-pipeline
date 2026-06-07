@@ -59,3 +59,9 @@ def get_hybrid_vectorstore() -> QdrantVectorStore:
 		collection_name=settings.collection_name,
 		retrieval_mode=RetrievalMode.HYBRID,
 	)
+
+
+def get_vectorstore_retriever(k = 25) -> QdrantVectorStore.as_retriever:
+	"""Convenience: directly get a retriever for the hybrid vectorstore."""
+	vectorstore = get_hybrid_vectorstore()
+	return vectorstore.as_retriever(search_kwargs={"k": k})
