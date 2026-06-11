@@ -1,0 +1,18 @@
+[project]
+name = "test-client"
+version = "0.1.0"
+description = "Test client for the RAG API"
+requires-python = ">=3.13"
+dependencies = [
+    "openai>=1.0.0",
+]
+
+[project.scripts]
+test-client = "test_client.main:main"
+
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/test_client"]

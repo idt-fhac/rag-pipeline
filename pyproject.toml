@@ -17,6 +17,7 @@ members = [
     "packages/rag_core",
     "services/rag_api",
     "services/ingestion",
+    "services/test_client",
 ]
 
 [build-system]
