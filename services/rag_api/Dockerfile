@@ -24,4 +24,4 @@ COPY services/rag_api/src services/rag_api/src
 # Re-sync to install local workspace packages from copied sources.
 RUN uv sync --frozen --no-dev --package rag-api
 
-CMD ["uv", "run", "--frozen", "rag-api"]
+CMD ["uv", "run", "--frozen", "uvicorn", "rag_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
