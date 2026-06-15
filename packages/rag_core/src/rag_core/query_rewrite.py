@@ -19,7 +19,39 @@ Use the user's original question and the optional context below:
 Additional context:
 {pre_context}
 
-Generate several clearly different search queries that cover the following retrieval strategies:
+--- STEP 1: Detect query type ---
+First decide: is this question about CODE (e.g. functions, classes, algorithms, libraries, APIs, implementations, configurations, error messages, syntax, data structures, pipelines, scripts)?
+
+If YES → apply the CODE retrieval strategies below (sections A–H).
+If NO  → apply the DOCUMENT retrieval strategies (sections 1–8).
+
+--- CODE retrieval strategies (use only when query is code-related) ---
+
+A. Signature query
+   Formulate a query that matches a typical function or class signature, e.g. "def train_agent(env, policy, ...)" or "class MarketSimulator".
+
+B. Docstring / comment query
+   Phrase the query as a natural-language description that would appear in a docstring or inline comment explaining the code.
+
+C. Import / dependency query
+   Search for the relevant module, package, or import statement (e.g. "import stable_baselines3", "from rl_env import").
+
+D. Error / exception query
+   If the question involves a bug or error, search for the exact error message, exception type, or traceback fragment.
+
+E. Variable / parameter query
+   Search for key variable names, parameter names, or configuration keys that are central to the functionality.
+
+F. Pattern / idiom query
+   Formulate a query around a common code pattern or idiom that implements the requested behavior (e.g. "callback handler", "gym.Env step reset", "reward shaping").
+
+G. Test / example query
+   Search for unit tests, usage examples, or notebooks that demonstrate the functionality in question.
+
+H. Broad keyword query
+   Short keyword combination of the programming language, framework, and task (e.g. "Python reinforcement learning environment step function").
+
+--- DOCUMENT retrieval strategies (use only when query is NOT code-related) ---
 
 1. Direct query
    Closely rephrase the original question while preserving its exact intent.
@@ -40,7 +72,7 @@ Generate several clearly different search queries that cover the following retri
    Reformulate the question from a different but still relevant perspective, such as evaluation, policy relevance, model behavior, stakeholder use, or decision support.
 
 7. Negative or risk queries
-   If useful, generate queries that retrieve risks, limitations, or failure modes related to the question, such as market power, price manipulation, black-box behavior, invalid assumptions, lack of validation, biased outcomes, or poor interpretability.
+   If useful, generate queries that retrieve risks, limitations, or failure modes related to the question.
 
 8. Abbreviation/entity queries
    If useful, include abbreviations, key entities, technical terms, or domain-specific shorthand that may appear in documents.
@@ -53,7 +85,7 @@ Rules:
 - Use the additional context only to improve retrieval, not to change the question.
 - Queries may use related concepts, synonyms, and domain terminology.
 - Make sure the queries are clearly different from each other.
-- Return only a valid JSON list of strings.
+- Return only a valid JSON list of strings. The first element must be "code" or "document" to indicate which strategy set was applied.
 - Do not include explanations, Markdown, comments, or text outside the JSON list.
 """
     ),
@@ -93,11 +125,19 @@ def query_rewriting(
         {"question": question, "num_queries": max_queries, "pre_context": basic_info},
         config=invoke_config,
     )
-    return parse_queries(raw_queries, question, max_queries)
+    queries, query_type = parse_queries(raw_queries, question, max_queries)
+    metrics.query_type = query_type
+    return queries
 
 
-def parse_queries(raw: str, original_question: str, max_queries: int) -> list[str]:
-    """Parse the raw JSON query list, prepend the original question, deduplicate, and cap at max_queries."""
+_QUERY_TYPE_TAGS = {"code", "document"}
+
+
+def parse_queries(raw: str, original_question: str, max_queries: int) -> tuple[list[str], str]:
+    """Parse the raw JSON query list, strip the leading type tag, prepend the original question, deduplicate, and cap at max_queries.
+
+    Returns a tuple of (queries, query_type) where query_type is "code", "document", or "unknown".
+    """
     try:
         queries = json.loads(raw)
         if not isinstance(queries, list):
@@ -106,6 +146,12 @@ def parse_queries(raw: str, original_question: str, max_queries: int) -> list[st
         queries = []
 
     queries = [q.strip() for q in queries if isinstance(q, str) and q.strip()]
+
+    query_type = "unknown"
+    if queries and queries[0].lower() in _QUERY_TYPE_TAGS:
+        query_type = queries[0].lower()
+        queries = queries[1:]
+
     queries = [original_question] + queries
 
     seen: set[str] = set()
@@ -116,4 +162,4 @@ def parse_queries(raw: str, original_question: str, max_queries: int) -> list[st
             seen.add(key)
             unique.append(q)
 
-    return unique[:max_queries]
+    return unique[:max_queries], query_type

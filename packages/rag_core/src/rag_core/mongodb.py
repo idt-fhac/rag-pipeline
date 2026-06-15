@@ -85,6 +85,7 @@ def save_request_metrics(metrics: RequestMetrics, question: str) -> None:
     doc = {
         "timestamp": datetime.now(timezone.utc),
         "question": question,
+        "query_type": metrics.query_type,
         "phases": {
             "query_rewrite": _phase(metrics.query_rewrite),
             "retrieval":     _phase(metrics.retrieval),

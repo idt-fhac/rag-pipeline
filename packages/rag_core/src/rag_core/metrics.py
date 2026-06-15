@@ -21,6 +21,7 @@ class RequestMetrics:
     parent_fetch: PhaseMetrics = field(default_factory=PhaseMetrics)
     answer: PhaseMetrics = field(default_factory=PhaseMetrics)
     wall_ms: float = 0.0
+    query_type: str = "unknown"
 
     def _total(self) -> PhaseMetrics:
         """Sum token counts and timings across all phases."""
