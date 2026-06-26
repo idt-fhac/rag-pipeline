@@ -2,26 +2,57 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     networks:
-      - rag_net
-    ports:
-      - "6333:6333"   # REST API
-      - "6334:6334"   # gRPC
+      - rag-pipeline-net
     volumes:
       - qdrant_data:/qdrant/storage
+
   mongodb:
     image: mongo:latest
     networks:
-      - rag_net
-    ports:
-      - "27017:27017" # MongoDB Port
+      - rag-pipeline-net
     volumes:
       - mongodb_data:/data/db
+  api:
+    build:
+      dockerfile: services/rag_api/Dockerfile
+    env_file: .env
+    networks:
+      - rag-pipeline-net
+    environment:
+      MONGO_URI: "mongodb://mongodb:27017"
+      QDRANT_URL: "http://qdrant:6333"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - qdrant
+      - mongodb
+
+## TODO remove comments when importing files
+#  ingestion:
+#    restart: no
+#    build:
+#      dockerfile: services/ingestion/Dockerfile
+#    env_file: .env
+#    networks:
+#      - rag-pipeline-net
+#    environment:
+#      MONGO_URI: "mongodb://mongodb:27017"
+#      QDRANT_URL: "http://qdrant:6333"
+#      INGEST_PDF_BASE_PATH: "/data/pdfs"
+#      INGEST_MARKDOWN_BASE_PATH: "/data/md"
+#      INGEST_CODE_BASE_PATH: "/data/code"
+#      INGEST_CODE_EXTENSIONS: ".py"
+#    volumes:
+#      - '/path:/data/pdfs:ro'
+#      - '/path:/data/md:ro'
+#      - '/path:/data/code:ro'
+#    depends_on:
+#      - qdrant
+#      - mongodb
 
 volumes:
   qdrant_data:
   mongodb_data:
 
 networks:
-  rag_net:
-    name: rag-pipeline-net
-    driver: bridge
+  rag-pipeline-net:
