@@ -52,13 +52,13 @@ uv run ingestion
 
 **Ingestion environment variables:**
 
-| Variable | Default | Description |
-|---|---|---|
-| `INGEST_LOADER` | `unstructured` | Loader backend: `unstructured` or `docling` |
-| `INGEST_PDF_BASE_PATH` | - | Root directory scanned for `**/*.pdf` |
-| `INGEST_MARKDOWN_BASE_PATH` | - | Root directory scanned for `**/*.md` |
-| `INGEST_CODE_BASE_PATH` | - | Root directory scanned for code files |
-| `INGEST_CODE_EXTENSIONS` | - | Comma-separated file extensions, e.g. `.py,.ts` |
+| Variable                    | Default        | Description                                     |
+|-----------------------------|----------------|-------------------------------------------------|
+| `INGEST_LOADER`             | `unstructured` | Loader backend: `unstructured` or `docling`     |
+| `INGEST_PDF_BASE_PATH`      | -              | Root directory scanned for `**/*.pdf`           |
+| `INGEST_MARKDOWN_BASE_PATH` | -              | Root directory scanned for `**/*.md`            |
+| `INGEST_CODE_BASE_PATH`     | -              | Root directory scanned for code files           |
+| `INGEST_CODE_EXTENSIONS`    | -              | Comma-separated file extensions, e.g. `.py,.ts` |
 
 Ingestion is destructive - it drops and recreates both the Qdrant collection and the MongoDB collection on every run.
 
@@ -91,6 +91,24 @@ docker build -f services/ingestion/Dockerfile -t ingestion:dev .
 docker compose up -d qdrant mongodb
 ```
 
+**Run ingestion** (mount your data as read-only volumes):
+
+```bash
+docker run --rm \
+  --env-file .env \
+  --network rag-pipeline-net \
+  -v "path/to/pdfs:/data/pdfs:ro" \ 
+  -v "/path/to/markdown:/data/md:ro" \ 
+  -v "/path/to/source:/data/code:ro" \
+  -e MONGO_URI=mongodb://mongodb:27017 \
+  -e QDRANT_URL=http://qdrant:6333 \
+  -e INGEST_PDF_BASE_PATH=/data/pdfs \
+  -e INGEST_MARKDOWN_BASE_PATH=/data/md \
+  -e INGEST_CODE_BASE_PATH=/data/code \
+  -e INGEST_CODE_EXTENSIONS=".py" \
+  ingestion:dev
+```
+
 **Run the API:**
 
 ```bash
@@ -103,22 +121,5 @@ docker run --rm \
   rag-api:dev
 ```
 
-**Run ingestion** (mount your data as read-only volumes):
-
-```bash
-docker run --rm \
-  --env-file .env \
-  --network rag-pipeline-net \
-  -v "/path/to/pdfs:/data/pdfs:ro" \
-  -v "/path/to/markdown:/data/md:ro" \
-  -v "/path/to/source:/data/code:ro" \
-  -e MONGO_URI=mongodb://mongodb:27017 \
-  -e QDRANT_URL=http://qdrant:6333 \
-  -e INGEST_PDF_BASE_PATH=/data/pdfs \
-  -e INGEST_MARKDOWN_BASE_PATH=/data/md \
-  -e INGEST_CODE_BASE_PATH=/data/code \
-  -e INGEST_CODE_EXTENSIONS=".py" \
-  ingestion:dev
-```
 
 `--env-file .env` loads the model variables. Database URLs are overridden with `-e` because inside the container the Compose service names (`mongodb`, `qdrant`) are used as hostnames instead of `localhost`.
