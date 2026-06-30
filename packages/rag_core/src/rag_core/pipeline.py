@@ -41,14 +41,14 @@ class RagPipeline:
         self._retriever: VectorStoreRetriever = get_vectorstore_retriever()
         self._reranker: CrossEncoderReranker = get_reranker(top_n=10)
 
-    def invoke(self, question: str) -> dict[str, Any]:
+    def invoke(self, question: str, system: str) -> dict[str, Any]:
         metrics = RequestMetrics()
         query_rewrite_handler = MetricsCallbackHandler(metrics.query_rewrite)
         answer_handler = MetricsCallbackHandler(metrics.answer)
 
         t_start = time.time()
         context_docs = self._retrieve(question, metrics, query_rewrite_handler)
-        answer = self._answer(question, context_docs, answer_handler)
+        answer = self._answer(question, system, context_docs, answer_handler)
         metrics.wall_ms = (time.time() - t_start) * 1000
 
         return {"answer": answer, "context": context_docs, "metrics": metrics}
@@ -141,11 +141,20 @@ class RagPipeline:
     def _answer(
         self,
         question: str,
+        system: str,
         context: list[Document],
         handler: MetricsCallbackHandler,
     ) -> str:
-        return (_ANSWER_PROMPT | self._llm | StrOutputParser()).invoke(
-            {"question": question, "context": context},
+        prompt = _ANSWER_PROMPT
+        context = {"question": question, "context": context}
+        if system != "":
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", "{system}"),
+                ("user", "Context:\n{context}\n\nQuestion: {question}"),
+            ])
+            context["system"] = system
+        return (prompt | self._llm | StrOutputParser()).invoke(
+            context,
             config={"callbacks": [handler]},
         )
 

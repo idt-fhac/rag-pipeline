@@ -47,9 +47,10 @@ async def chat_completions(request: ChatCompletionRequest):
     question = _get_user_message(request)
     if not question:
         raise HTTPException(status_code=400, detail="No user message found")
+    system_prompt = _get_sytem_prompt(request)
 
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, _pipeline.invoke, question)
+    result = await loop.run_in_executor(None, _pipeline.invoke, question, system_prompt)
 
     loop.run_in_executor(None, save_request_metrics, result["metrics"], question)
     
@@ -75,6 +76,13 @@ def _get_user_message(request: ChatCompletionRequest) -> str:
     """Return the content of the last user message in the request."""
     for msg in reversed(request.messages):
         if msg.role == "user":
+            return msg.content
+    return ""
+
+def _get_sytem_prompt(request: ChatCompletionRequest) -> str:
+    """Return the content of the first sytem prompt in the request."""
+    for msg in request.messages:
+        if msg.role == "system":
             return msg.content
     return ""
 
