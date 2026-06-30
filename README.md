@@ -4,6 +4,7 @@ A RAG pipeline that ingests PDFs, Markdown files, and source code into a hybrid 
 
 Built with Qdrant, MongoDB, LangChain, Unstructured / Docling, FastEmbed BM25, and a HuggingFace cross-encoder. Models (LLM + embeddings) connect via any OpenAI-compatible API endpoint.
 
+Special thanks go to [@x-46](https://github.com/x-46/rag-pipeline).
 ## Docs
 
 - [Setup](docs/setup.md) - installation, config, all arguments, Docker
