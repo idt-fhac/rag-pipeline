@@ -5,6 +5,14 @@ from openai import OpenAI
 RAG_API_URL = os.getenv("RAG_API_URL", "http://localhost:8000/v1")
 RAG_API_KEY = os.getenv("RAG_API_KEY", "none")
 
+SYSTEM = """
+You are an expert assistant for the ASSUME energy simulation framework.
+Answer the question using ONLY the information provided in the context below.
+If the context does not contain enough information to answer, say "I don't have enough information to answer this question."
+Do not make up or infer facts beyond what is explicitly stated in the context.
+Answer concisely and precisely.
+"""
+
 QUESTIONS = [
     "Which bidding strategies does ASSUME support?",
     "What are the key features of ASSUME?",
@@ -23,7 +31,7 @@ def main() -> None:
 
         response = client.chat.completions.create(
             model="rag-model",
-            messages=[{"role": "user", "content": question}],
+            messages=[{"role": "user", "content": question}, {"role": "system", "content": SYSTEM}],
         )
 
         answer = response.choices[0].message.content
