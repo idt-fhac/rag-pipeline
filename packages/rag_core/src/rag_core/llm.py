@@ -8,4 +8,5 @@ def get_llm() -> ChatOpenAI:
         model=settings.llm_model_name,
         base_url=settings.llm_model_base_url,
         api_key=settings.llm_model_api_key,
+        reasoning_effort='low',
     )
